@@ -51,20 +51,113 @@ To implement the **Prioritized Sweeping Reinforcement Learning algorithm** for a
 
 ```python
 
+#Rod Maneuvering with Prioritized Sweeping
+
+import heapq
+import numpy as np
+
+# Grid size (Rod maneuvering environment)
+ROWS, COLS = 5, 5
+
+actions = [(-1,0),(1,0),(0,-1),(0,1)]  # Up, Down, Left, Right
+
+gamma = 0.95
+alpha = 0.1
+theta = 0.01
+
+Q = np.zeros((ROWS, COLS, len(actions)))
+
+model = {}
+predecessors = {}
+
+priority_queue = []
+
+goal = (4,4)
+
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+
+    nr = max(0, min(ROWS-1, r+dr))
+    nc = max(0, min(COLS-1, c+dc))
+
+    next_state = (nr, nc)
+
+    reward = 100 if next_state == goal else -1
+
+    return next_state, reward
+
+for episode in range(100):
+
+    state = (0,0)
+
+    while state != goal:
+
+        action = np.random.randint(len(actions))
+
+        next_state, reward = step(state, action)
+
+        model[(state, action)] = (next_state, reward)
+
+        if next_state not in predecessors:
+            predecessors[next_state] = set()
+
+        predecessors[next_state].add((state, action))
+
+        p = abs(
+            reward +
+            gamma*np.max(Q[next_state]) -
+            Q[state][action]
+        )
+
+        if p > theta:
+            heapq.heappush(priority_queue,
+                           (-p, state, action))
+
+        for _ in range(5):
+
+            if not priority_queue:
+                break
+
+            _, s, a = heapq.heappop(priority_queue)
+
+            ns, r = model[(s,a)]
+
+            target = r + gamma*np.max(Q[ns])
+
+            Q[s][a] += alpha*(target-Q[s][a])
+
+            if s in predecessors:
+
+                for ps, pa in predecessors[s]:
+
+                    p = abs(
+                        model[(ps,pa)][1] +
+                        gamma*np.max(Q[s]) -
+                        Q[ps][pa]
+                    )
+
+                    if p > theta:
+                        heapq.heappush(
+                            priority_queue,
+                            (-p, ps, pa)
+                        )
+
+        state = next_state
+
+print("Learning Complete")
+print(Q)
+
 ```
 
 
 ## Output
 
-```text
 
 
-
-```
-
+<img width="824" height="666" alt="image" src="https://github.com/user-attachments/assets/f00f1c1e-ee53-497f-a878-8665196200ac" />
 
 
----
 
 ## Result
 
